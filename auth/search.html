@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Cluster Survey</title><meta name="viewport" content="width=device-width"/>
+
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="css/style.css" type="text/css" rel="stylesheet" media="screen,projection"/>
+  <link href="https://unpkg.com/survey-knockout@1.8.30/modern.css" type="text/css" rel="stylesheet"/>
+  <link rel="stylesheet" href="auth.css">
+
+
+        <script src="https://unpkg.com/jquery"></script>
+        <script src="https://unpkg.com/survey-jquery@1.8.30/survey.jquery.min.js"></script>
+        <link rel="stylesheet" href="./index.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons"/><link rel="stylesheet" href="https://unpkg.com/bootstrap-material-design@4.1.1/dist/css/bootstrap-material-design.min.css" integrity="sha384-wXznGJNEXNG1NFsbm0ugrLFMQPWswR3lds2VeinahP8N0zJw9VWSopbjv2x7WCvX" crossorigin="anonymous"/>
+         <link rel="stylesheet" href="auth.css">
+        <script src="https://unpkg.com/popper.js@1.12.6/dist/umd/popper.js" integrity="sha384-fA23ZRQ3G/J53mElWqVJEGJzU0sTs+SvzG8fXVWP+kJQ1lwFAOkcUOysnlKJC33U" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/bootstrap-material-design@4.1.1/dist/js/bootstrap-material-design.js" integrity="sha384-CauSuKpEqAFajSpkdjv3z9t8E7RlpJ1UP0lKM/+NdtSarroVKu069AlsRPKkFBz9" crossorigin="anonymous"></script>
+        <script>
+            $(document).ready(function () {
+                $('body').bootstrapMaterialDesign();
+            });
+        </script>
+    </head>
+    <body>
+
+      <nav class="white" role="navigation">
+    <div class="nav-wrapper container">
+      <a id="logo-container" href="index.html" class="brand-logo">UCC DECA</a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="chat/index.html">Question or Chat</a></li>
+      </ul>
+
+      <ul id="nav-mobile" class="sidenav">
+        <li><a href="chat/index.html">Question or Chat</a></li>
+      </ul>
+      <a href="chat/index.html" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+    </div>
+  </nav>
+
+
+  <div class="col s12 m7">
+    <h2 class="header"> </h2>
+    <div class="card horizontal">
+        <div id="surveyElement" style="display:inline-block;width:100%;"></div>
+        <div id="surveyResult"></div>
+        <script type="text/javascript" src="index.js"></script>
+
+
+<div id="questionaire">
+</div>
+<div class="toolstrip">
+<button id="btnNext" type="button">Next</button>
+</div>
+</div>
+</div>
+
+
+        <script>
+
+
+          // data structure with points, questions and answers
+const questions = [
+  { 
+    question: 'Is This Your First Year in DECA?',
+    answers: ['Yes', 'No'],
+    correct: 0, //index of correct answer
+    points: 100 //poitns assigned if correct
+  },
+  { 
+    question: 'Do You Enjoy Working in a Team?',
+    answers: ['Team', 'Solo'],
+    correct: 0,
+    points: 1
+  },
+  { 
+    question: 'Do You Enjoy Finance or Marketing?',
+    answers: ['Finance', 'marketing'],
+    correct: 0,
+    points: 5
+  }
+];
+
+// a simple generator that is used in the questionaire
+function *questionsGenerator( questions ) {
+  yield* questions;
+}
+
+// creates a questionaire, with forward only options (due to the use of the generator function)
+// all variables are locally scoped, when all questions were answered, the onCompleted callback would be called
+// it returns an object with nextQuestion function though it could call nextButton internally, and you just have to call the function once if you would want to change it
+const questionaire = ( query, nextButton, target, onCompleted ) => {
+  let score = 0;
+  let iterator = questionsGenerator( query );
+  let question = null;
+  let selectedAnswer = -1;
+  let cluster = ""
+  
+  nextButton.addEventListener('click', nextQuestion);
+  
+  function evaluateAnswer() {
+    if (!question) {
+      // no question yet
+      return;
+    }
+    if (selectedAnswer < 0) {
+      return;
+    }
+    if (question.correct === selectedAnswer) {
+      score += question.points;
+    }
+    return;
+  }
+
+  function clusterAssignment(){
+    if (score===101||100){
+      cluster = "Principles of Marketing"
+    }
+    else if (score===105||106){
+      cluster = "Principles of Finance"
+    }
+    else if (score===6){
+      cluster = "Team Business Finance Series"
+    }
+    else if (score===1){
+      cluster = "Team Business Service Marketing"
+    }
+    else if (score===5){
+      cluster = "Individual Business Finance Series"
+    }
+    else if (score===0){
+      cluster = "Individual Business Service Marketing"
+    }
+    return cluster;
+
+  }
+
+  
+  function nextQuestion() {
+    evaluateAnswer();
+    clusterAssignment();
+
+    question = iterator.next();
+    // this is a bit of a hack to check if we just had the last question or not
+    if (question.done) {
+      nextButton.removeEventListener('click', nextQuestion);
+      onCompleted( cluster );
+      return;
+    }
+    question = question.value;
+    drawUI();
+  }
+  
+  function drawUI() {
+    // disable next button
+    nextButton.setAttribute('disabled', true);
+    selectedAnswer = -1;
+    // remove existing items
+    Array.from( target.childNodes ).forEach( child => target.removeChild( child ) );
+    // create new questions (if available)
+    const title = document.createElement('h1');
+    title.innerHTML = question.question;
+    target.appendChild( title );
+    
+    question.answers.map( (answer, i) => {
+      const el = document.createElement('input');
+      el.type = 'radio';
+      el.name = 'answer';
+      el.value = i;
+      el.id = 'answer' + i;
+      el.addEventListener('change', () => { 
+        selectedAnswer = i; 
+        nextButton.removeAttribute('disabled'); 
+      } );
+      const label = document.createElement('label');
+      label.setAttribute('for', el.id );
+      label.innerHTML = answer;
+      
+      const container = document.createElement('div');
+      container.appendChild(el);
+      container.appendChild(label);
+      return container;      
+    } ).forEach( a => target.appendChild( a ) );
+  }
+  
+  return {
+    nextQuestion
+  }
+};
+
+
+
+// create a questionaire and start the first question
+questionaire(
+  questions, 
+  document.querySelector('#btnNext'), 
+  document.querySelector('#questionaire'), 
+  cluster => alert('Your Recommended Cluster Is ' + cluster )
+
+).nextQuestion();
+
+        </script>
+    </body>
+</html>
